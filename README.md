@@ -2,6 +2,8 @@
 
 **一个强大、通用的多窗口 Web 客户端，用于同时与多个大语言模型（LLM）进行交互。完全在您的浏览器中运行，无需后端，确保您的 API 密钥安全无虞。**
 
+<img width="100%" alt="Image" src="https://github.com/user-attachments/assets/f3406141-38e1-42ed-ab52-445d07d0d3f8" />
+
 ---
 
 ## 📖 项目简介
