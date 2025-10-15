@@ -136,4 +136,4 @@ CyanChat 是一个零依赖、单文件的 Web 应用，旨在简化与多个AI�
 本项目采用 MIT 许可证。详情请见 `LICENSE` 文件。
 
 ## 🤖 开发工具
-[![Crafted by AI](https://img.shields.io/badge/Crafted%20by-AI-007bff.svg?style=for-the-badge&logo=google-gemini)](https://gemini.google.com/)
+![Crafted by AI](https://img.shields.io/badge/Crafted%20by-AI-007bff.svg?style=for-the-badge&logo=google-gemini)
