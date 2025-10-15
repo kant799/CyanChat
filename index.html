@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyanChat</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        dialog::backdrop { background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
+        :root { --scrollbar-track: #e2e8f0; --scrollbar-thumb: #94a3b8; --scrollbar-thumb-hover: #64748b; }
+        .dark { --scrollbar-track: #1f2937; --scrollbar-thumb: #4b5563; --scrollbar-thumb-hover: #6b7280; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+    </style>
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+</head>
+
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 antialiased">
+    <div class="flex flex-col h-screen overflow-hidden">
+        
+        <header class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 h-16 flex-shrink-0 bg-gray-50 dark:bg-gray-900">
+            <h1 class="text-xl font-bold text-gray-900 dark:text-white">CyanChat</h1>
+            <div class="flex items-center gap-3">
+                <button id="theme-toggle-btn" title="Toggle Theme" class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"><i id="sun-icon" class="fa-solid fa-sun text-lg hidden"></i><i id="moon-icon" class="fa-solid fa-moon text-lg hidden"></i></button>
+                <button id="settings-btn" title="Settings" class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"><i class="fa-solid fa-gear text-lg"></i></button>
+                <button id="new-chat-btn" title="New Chat" class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"><i class="fa-solid fa-arrows-rotate text-lg"></i></button>
+                <button id="add-window-btn" title="Add New Window" class="bg-blue-600 text-white w-10 h-10 flex items-center justify-center rounded-lg hover:bg-blue-700 transition-colors"><i class="fa-solid fa-plus text-lg"></i></button>
+            </div>
+        </header>
+
+        <main id="chat-container" class="flex flex-1 p-4 gap-4 overflow-x-auto bg-gray-100 dark:bg-gray-800/50"></main>
+
+        <footer class="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-900">
+            <form id="message-form" class="flex gap-4 items-end">
+                <textarea id="message-input" placeholder="Enter message (Ctrl+Enter to send)" rows="1" class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none max-h-40 overflow-y-auto"></textarea>
+                <button type="submit" title="Send Message" class="bg-blue-600 text-white w-14 h-12 flex-shrink-0 flex items-center justify-center font-semibold rounded-lg hover:bg-blue-700 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
+            </form>
+        </footer>
+    </div>
+
+    <!-- ** MODIFIED: Settings modal with enhanced helper text ** -->
+    <dialog id="settings-modal" class="bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-0 w-full max-w-2xl">
+        <div id="provider-list-view">
+            <header class="p-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700"><h2 class="text-lg font-semibold">API Providers</h2><button aria-label="Close" class="close text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white" data-target="settings-modal"><i class="fa-solid fa-xmark text-2xl"></i></button></header>
+            <div id="provider-list-container" class="p-4 space-y-2 max-h-[60vh] overflow-y-auto"></div>
+            <footer class="p-4 flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700"><button id="add-provider-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Add New Provider</button></footer>
+        </div>
+        <div id="provider-settings-view" class="hidden">
+             <header class="p-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700"><h2 id="provider-form-title" class="text-lg font-semibold">Edit Provider</h2><button aria-label="Close" class="close text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white" data-target="settings-modal"><i class="fa-solid fa-xmark text-2xl"></i></button></header>
+            <form id="provider-settings-form">
+                <input type="hidden" id="provider-edit-index">
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label for="provider-name" class="block text-sm font-medium">Provider Name</label>
+                        <input type="text" id="provider-name" required class="mt-1 w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg p-2">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">A nickname for this provider, e.g., "My Local LLM".</p>
+                    </div>
+                    <div>
+                        <label for="provider-base-url" class="block text-sm font-medium">Base URL</label>
+                        <input type="url" id="provider-base-url" required class="mt-1 w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg p-2">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">The base endpoint for the API. The path <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">/chat/completions</code> will be appended automatically.</p>
+                    </div>
+                    <div>
+                        <label for="provider-api-key" class="block text-sm font-medium">API Key</label>
+                        <input type="password" id="provider-api-key" class="mt-1 w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg p-2">
+                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Your secret API key from the provider.</p>
+                    </div>
+                    <div>
+                        <label for="provider-models" class="block text-sm font-medium">Available Models (one per line)</label>
+                        <textarea id="provider-models" class="mt-1 w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg p-2 h-28 resize-none"></textarea>
+                    </div>
+                </div>
+                <footer class="p-4 flex justify-between gap-2 border-t border-gray-200 dark:border-gray-700">
+                    <div><button type="button" id="delete-provider-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">Delete</button></div>
+                    <div><button type="button" id="back-to-list-btn" class="bg-gray-200 dark:bg-gray-600 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">Back</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Save Provider</button></div>
+                </footer>
+            </form>
+        </div>
+    </dialog>
+    <!-- Prompt Modal is unchanged -->
+    <dialog id="prompt-modal" class="bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-0 w-full max-w-2xl"><article><header class="p-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700"><h2 class="text-lg font-semibold">Edit System Prompt</h2><button aria-label="Close" class="close text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white" data-target="prompt-modal"><i class="fa-solid fa-xmark text-2xl"></i></button></header><form id="prompt-edit-form"><div class="p-4"><textarea id="prompt-textarea" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg p-2 h-48 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea></div><footer class="p-4 flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700"><button type="button" class="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700" data-target="prompt-modal">Cancel</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Save</button></footer></form></article></dialog>
+
+    <script>
+    (function() {
+        'use strict';
+        const themeToggleBtn = document.getElementById('theme-toggle-btn'), sunIcon = document.getElementById('sun-icon'), moonIcon = document.getElementById('moon-icon');
+        const chatContainer = document.getElementById('chat-container'), addWindowBtn = document.getElementById('add-window-btn'), messageForm = document.getElementById('message-form'), messageInput = document.getElementById('message-input'), settingsBtn = document.getElementById('settings-btn'), newChatBtn = document.getElementById('new-chat-btn');
+        const promptModal = document.getElementById('prompt-modal'), promptEditForm = document.getElementById('prompt-edit-form'), promptTextarea = document.getElementById('prompt-textarea'), settingsModal = document.getElementById('settings-modal');
+        const providerListView = document.getElementById('provider-list-view'), providerListContainer = document.getElementById('provider-list-container'), addProviderBtn = document.getElementById('add-provider-btn');
+        const providerSettingsView = document.getElementById('provider-settings-view'), providerSettingsForm = document.getElementById('provider-settings-form'), providerFormTitle = document.getElementById('provider-form-title'), backToListBtn = document.getElementById('back-to-list-btn'), deleteProviderBtn = document.getElementById('delete-provider-btn');
+        const providerEditIndexInput = document.getElementById('provider-edit-index'), providerNameInput = document.getElementById('provider-name'), providerBaseUrlInput = document.getElementById('provider-base-url'), providerApiKeyInput = document.getElementById('provider-api-key'), providerModelsInput = document.getElementById('provider-models');
+        
+        let activeWindowIdForModal = null, windowCounter = 0;
+        let windowStates = {}, apiProviders = [];
+        const STORAGE_KEY_PROVIDERS = 'mpc_api_providers';
+        
+        // ** MODIFIED: Default providers list is now more instructive **
+        const DEFAULT_PROVIDERS = [
+            { name: 'OpenAI / Compatible', baseUrl: 'https://api.openai.com/v1', apiKey: '', models: 'gpt-4o\ngpt-4-turbo\ngpt-3.5-turbo' },
+            { name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', apiKey: '', models: 'deepseek-chat\ndeepseek-coder' },
+            { name: 'Custom Provider (Template)', baseUrl: 'http://localhost:1234/v1', apiKey: 'not-needed', models: 'llama-3-8b\nphi-3-mini' }
+        ];
+        const INITIAL_PROMPT_FILES = ['system/文章行为分析师.md', 'system/要点总结.md', 'system/中文润色专家.md'], FALLBACK_PROMPT = "You are a helpful assistant.";
+
+        /**
+         * Performs a streaming API call using the OpenAI Chat Completions format.
+         * Assumes the provider's endpoint is provider.baseUrl + '/chat/completions'.
+         * @param {string} windowId - The ID of the window making the call.
+         * @param {Array} messages - The conversation history payload.
+         */
+        async function streamedApiCall(windowId, messages) {
+            const state = windowStates[windowId];
+            const provider = apiProviders[state.providerIndex];
+            if (!provider) throw new Error("Invalid API provider selected.");
+            const apiKey = provider.apiKey;
+            if (!apiKey) throw new Error(`API Key for ${provider.name} is not set.`);
+            
+            const aiBubble = addMessageToWindow(document.getElementById(windowId), '...', 'ai');
+            const aiContentEl = aiBubble.querySelector('.message-content');
+
+            try {
+                // The URL is constructed using the universal OpenAI-compatible path.
+                const apiUrl = `${provider.baseUrl.replace(/\/$/, '')}/chat/completions`;
+
+                const response = await fetch(apiUrl, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, 
+                    body: JSON.stringify({ model: state.model, messages, stream: true }) 
+                });
+                if (!response.ok) { const errorData = await response.json(); throw new Error(`API Error (${response.status}): ${errorData.error?.message || 'Unknown error'}`); }
+                const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '';
+                while (true) {
+                    const { done, value } = await reader.read(); if (done) break;
+                    buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n'); buffer = lines.pop();
+                    for (const line of lines) { if (line.startsWith('data: ')) { const data = line.substring(6); if (data.trim() === '[DONE]') break; try { const chunk = JSON.parse(data), content = chunk.choices[0]?.delta?.content; if (content) { aiContentEl.textContent += content; aiContentEl.closest('.chat-messages').scrollTop = aiContentEl.closest('.chat-messages').scrollHeight; } } catch (e) { /* Gracefully ignore parsing errors of stray data */ } } }
+                }
+                state.history.push({ role: 'assistant', content: aiContentEl.textContent });
+                addActionsToBubble(aiBubble, 'ai', windowId);
+            } catch (error) {
+                aiBubble.remove();
+                addMessageToWindow(document.getElementById(windowId), `Error: ${error.message}`, 'error');
+                state.history.pop();
+            }
+        }
+        
+        // --- All other functions (UI, event handlers, etc.) remain unchanged ---
+        function createChatWindow(prompt, title) {
+            windowCounter++; const windowId = `window-${windowCounter}`, systemPrompt = prompt ?? FALLBACK_PROMPT, windowTitle = title ?? `Persona ${windowCounter}`;
+            windowStates[windowId] = { systemPrompt, providerIndex: 0, model: (apiProviders[0]?.models.split('\n')[0] || ''), history: [] };
+            const windowEl = document.createElement('article'); windowEl.className = 'flex-1 min-w-[400px] bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col h-full shadow-lg'; windowEl.id = windowId;
+            windowEl.innerHTML = `<header class="p-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 space-y-2"><div class="flex justify-between items-center"><h5 class="font-semibold truncate text-gray-900 dark:text-white" title="${systemPrompt}">${windowTitle}</h5><div class="flex-shrink-0 flex items-center gap-2"><button title="Edit System Prompt" class="edit-prompt-btn text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors" data-window-id="${windowId}"><i class="fa-solid fa-pencil"></i></button><button title="Close Window" class="close-btn text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors" data-window-id="${windowId}"><i class="fa-solid fa-xmark text-xl"></i></button></div></div><div class="controls flex gap-2"></div></header><div class="chat-messages flex-grow p-3 flex flex-col gap-2 overflow-y-auto"></div>`;
+            const controlsContainer = windowEl.querySelector('.controls'), providerSelect = document.createElement('select'), modelSelect = document.createElement('select');
+            providerSelect.className = 'provider-selector w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition'; providerSelect.dataset.windowId = windowId;
+            apiProviders.forEach((p, index) => { const option = document.createElement('option'); option.value = index; option.textContent = p.name; providerSelect.appendChild(option); });
+            modelSelect.className = 'model-selector w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition'; modelSelect.dataset.windowId = windowId;
+            controlsContainer.appendChild(providerSelect); controlsContainer.appendChild(modelSelect); updateWindowModelSelector(windowId);
+            chatContainer.appendChild(windowEl); chatContainer.scrollLeft = chatContainer.scrollWidth;
+        }
+        function updateWindowModelSelector(windowId) {
+            const windowEl = document.getElementById(windowId); if (!windowEl) return;
+            const modelSelect = windowEl.querySelector('.model-selector'), state = windowStates[windowId], provider = apiProviders[state.providerIndex];
+            modelSelect.innerHTML = '';
+            if (provider) {
+                const models = provider.models.split('\n').map(m => m.trim()).filter(Boolean);
+                models.forEach(modelName => { const option = document.createElement('option'); option.value = modelName; option.textContent = modelName; modelSelect.appendChild(option); });
+                state.model = models[0] || ''; modelSelect.value = state.model;
+            }
+        }
+        function addMessageToWindow(windowEl, text, type) {
+            const messagesContainer = windowEl.querySelector('.chat-messages'); const messageBubble = document.createElement('div'); messageBubble.className = 'message-bubble max-w-[85%]'; let bubbleAlign = 'self-start'; if (type === 'user') bubbleAlign = 'self-end'; messageBubble.classList.add(bubbleAlign); const messageContent = document.createElement('div');
+            let typeClasses = 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'; if (type === 'user') typeClasses = 'bg-blue-600 text-white'; if (type === 'error') typeClasses = 'bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-500/20 dark:border-red-500/50';
+            messageContent.className = `message-content p-3 rounded-lg whitespace-pre-wrap ${typeClasses}`; messageContent.textContent = text; messageBubble.appendChild(messageContent);
+            const actionsBar = document.createElement('div'); actionsBar.className = 'message-actions h-6 mt-1 px-2 flex items-center gap-3'; messageBubble.appendChild(actionsBar);
+            messagesContainer.appendChild(messageBubble); messagesContainer.scrollTop = messagesContainer.scrollHeight; return messageBubble;
+        }
+        function addActionsToBubble(messageBubble, type, windowId) {
+            const actionsBar = messageBubble.querySelector('.message-actions'); if (!actionsBar) return; actionsBar.innerHTML = ''; if (type === 'error') return;
+            const copyBtn = document.createElement('button'); copyBtn.className = 'copy-btn text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors'; copyBtn.title = 'Copy'; copyBtn.innerHTML = '<i class="fa-solid fa-copy fa-xs"></i>'; actionsBar.appendChild(copyBtn);
+            if (type === 'ai') { const regenerateBtn = document.createElement('button'); regenerateBtn.className = 'regenerate-btn text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors'; regenerateBtn.title = 'Regenerate'; regenerateBtn.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-xs"></i>'; regenerateBtn.dataset.windowId = windowId; actionsBar.appendChild(regenerateBtn); }
+        }
+        function handleMessageSend(event) {
+            event.preventDefault(); const userMessage = messageInput.value.trim(); if (!userMessage) return;
+            document.querySelectorAll('#chat-container > article').forEach(windowEl => {
+                const windowId = windowEl.id, state = windowStates[windowId];
+                windowEl.querySelector('.message-bubble:last-child .regenerate-btn')?.remove();
+                const userBubble = addMessageToWindow(windowEl, userMessage, 'user');
+                addActionsToBubble(userBubble, 'user', windowId);
+                state.history.push({ role: 'user', content: userMessage });
+                streamedApiCall(windowId, [{ role: 'system', content: state.systemPrompt }, ...state.history]);
+            });
+            messageInput.value = ''; messageInput.dispatchEvent(new Event('input', { bubbles: true })); messageInput.focus();
+        }
+        function handleRegenerate(windowId) {
+            const state = windowStates[windowId], windowEl = document.getElementById(windowId);
+            if (!state || !windowEl || state.history.length === 0 || state.history[state.history.length - 1].role !== 'assistant') return;
+            state.history.pop(); windowEl.querySelector('.message-bubble:last-child').remove();
+            streamedApiCall(windowId, [{ role: 'system', content: state.systemPrompt }, ...state.history]);
+        }
+        function handleChatContainerEvents(event) {
+            const targetButton = event.target.closest('button');
+            if (targetButton?.classList.contains('copy-btn')) { const messageContent = targetButton.closest('.message-bubble').querySelector('.message-content'); if (messageContent) { navigator.clipboard.writeText(messageContent.textContent).then(() => { targetButton.innerHTML = '<i class="fa-solid fa-check fa-xs text-green-500"></i>'; setTimeout(() => { targetButton.innerHTML = '<i class="fa-solid fa-copy fa-xs"></i>'; }, 2000); }); } return; }
+            if (targetButton?.classList.contains('regenerate-btn')) { handleRegenerate(targetButton.dataset.windowId); return; }
+            const targetWithData = event.target.closest('[data-window-id]'); if (!targetWithData) return;
+            const windowId = targetWithData.dataset.windowId;
+            if (targetWithData.classList.contains('close-btn')) { document.getElementById(windowId)?.remove(); delete windowStates[windowId]; }
+            else if (targetWithData.classList.contains('edit-prompt-btn')) { activeWindowIdForModal = windowId; promptTextarea.value = windowStates[windowId].systemPrompt; promptModal.showModal(); }
+            else if (targetWithData.classList.contains('provider-selector')) { windowStates[windowId].providerIndex = parseInt(targetWithData.value, 10); updateWindowModelSelector(windowId); }
+            else if (targetWithData.classList.contains('model-selector')) { windowStates[windowId].model = targetWithData.value; }
+        }
+        function showProviderList() { providerListView.classList.remove('hidden'); providerSettingsView.classList.add('hidden'); }
+        function showProviderSettings() { providerListView.classList.add('hidden'); providerSettingsView.classList.remove('hidden'); }
+        function renderProviderList() {
+            providerListContainer.innerHTML = '';
+            apiProviders.forEach((p, index) => {
+                const item = document.createElement('div'); item.className = 'p-3 bg-gray-100 dark:bg-gray-700 rounded-lg flex justify-between items-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600'; item.dataset.index = index;
+                item.innerHTML = `<span>${p.name}</span><i class="fa-solid fa-chevron-right text-gray-400"></i>`;
+                item.addEventListener('click', () => openProviderForEditing(index)); providerListContainer.appendChild(item);
+            });
+        }
+        function openProviderForEditing(index) {
+            const isNew = index === -1; providerFormTitle.textContent = isNew ? 'Add New Provider' : 'Edit Provider'; providerEditIndexInput.value = index;
+            if (isNew) { providerSettingsForm.reset(); } else { const provider = apiProviders[index]; providerNameInput.value = provider.name; providerBaseUrlInput.value = provider.baseUrl; providerApiKeyInput.value = provider.apiKey; providerModelsInput.value = provider.models; }
+            deleteProviderBtn.classList.toggle('hidden', isNew); showProviderSettings();
+        }
+        function saveProviderSettings(event) {
+            event.preventDefault(); const index = parseInt(providerEditIndexInput.value, 10);
+            const providerData = { name: providerNameInput.value, baseUrl: providerBaseUrlInput.value, apiKey: providerApiKeyInput.value, models: providerModelsInput.value };
+            if (index === -1) { apiProviders.push(providerData); } else { apiProviders[index] = providerData; }
+            saveProviders(); renderProviderList(); updateAllProviderSelectors(); showProviderList();
+        }
+        function deleteProvider() {
+            const index = parseInt(providerEditIndexInput.value, 10);
+            if (index > -1 && confirm(`Are you sure you want to delete "${apiProviders[index].name}"?`)) { apiProviders.splice(index, 1); saveProviders(); renderProviderList(); updateAllProviderSelectors(); showProviderList(); }
+        }
+        function updateAllProviderSelectors() { document.querySelectorAll('.provider-selector').forEach(sel => { const currentVal = sel.value; sel.innerHTML = ''; apiProviders.forEach((p, i) => { const opt = document.createElement('option'); opt.value = i; opt.textContent = p.name; sel.appendChild(opt); }); sel.value = currentVal; if (!sel.value && apiProviders.length > 0) sel.value = '0'; updateWindowModelSelector(sel.dataset.windowId); }); }
+        function saveProviders() { localStorage.setItem(STORAGE_KEY_PROVIDERS, JSON.stringify(apiProviders)); }
+        function loadProviders() { const saved = localStorage.getItem(STORAGE_KEY_PROVIDERS); apiProviders = saved ? JSON.parse(saved) : DEFAULT_PROVIDERS; }
+        function handlePromptSave(event) { event.preventDefault(); if (!activeWindowIdForModal) return; const newPrompt = promptTextarea.value.trim(); windowStates[activeWindowIdForModal].systemPrompt = newPrompt; document.querySelector(`#${activeWindowIdForModal} h5`).title = newPrompt; promptModal.close(); }
+        function handleNewChat() { if (confirm('Are you sure you want to clear all conversations?')) { document.querySelectorAll('#chat-container > article').forEach(windowEl => { const windowId = windowEl.id; windowEl.querySelector('.chat-messages').innerHTML = ''; if (windowStates[windowId]) { windowStates[windowId].history = []; } }); } }
+        function updateThemeUI() { const isDark = document.documentElement.classList.contains('dark'); if (isDark) { moonIcon.classList.remove('hidden'); sunIcon.classList.add('hidden'); } else { sunIcon.classList.remove('hidden'); moonIcon.classList.add('hidden'); } }
+        async function initializeApp() {
+            loadProviders(); updateThemeUI();
+            try { const fetchPromises = INITIAL_PROMPT_FILES.map(path => fetch(path).then(res => res.ok ? res.text() : Promise.reject(`Cannot fetch ${path}`))); const prompts = await Promise.all(fetchPromises); prompts.forEach((prompt, i) => { const title = INITIAL_PROMPT_FILES[i].split('/').pop().replace('.md', ''); createChatWindow(prompt, title); });
+            } catch (error) { console.error("Failed to load initial prompts:", error); chatContainer.innerHTML = `<div class="bg-red-500/10 dark:bg-red-900/50 border border-red-700 text-red-700 dark:text-red-200 p-4 rounded-lg"><strong>Error:</strong> Could not load initial prompts. <br>${error}</div>`; }
+        }
+        
+        // EVENT LISTENERS
+        themeToggleBtn.addEventListener('click', () => { document.documentElement.classList.toggle('dark'); localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light'; updateThemeUI(); });
+        addWindowBtn.addEventListener('click', () => createChatWindow()); newChatBtn.addEventListener('click', handleNewChat); messageForm.addEventListener('submit', handleMessageSend);
+        messageInput.addEventListener('input', () => { messageInput.style.height = 'auto'; messageInput.style.height = `${messageInput.scrollHeight}px`; });
+        messageInput.addEventListener('keydown', (event) => { if (event.key === 'Enter' && event.ctrlKey) { event.preventDefault(); messageForm.requestSubmit(); } });
+        chatContainer.addEventListener('change', handleChatContainerEvents); chatContainer.addEventListener('click', handleChatContainerEvents);
+        promptEditForm.addEventListener('submit', handlePromptSave);
+        settingsBtn.addEventListener('click', () => { renderProviderList(); showProviderList(); settingsModal.showModal(); });
+        addProviderBtn.addEventListener('click', () => openProviderForEditing(-1)); backToListBtn.addEventListener('click', showProviderList); providerSettingsForm.addEventListener('submit', saveProviderSettings); deleteProviderBtn.addEventListener('click', deleteProvider);
+        document.addEventListener('click', (event) => { const target = event.target.closest('[data-target]'); if (target?.dataset.target) { document.getElementById(target.dataset.target)?.close(); } });
+        
+        initializeApp();
+    })();
+    </script>
+</body>
+
+</html>
